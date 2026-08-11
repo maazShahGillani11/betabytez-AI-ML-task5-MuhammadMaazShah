@@ -98,7 +98,6 @@ pip install -r requirements.txt
 streamlit run app.py
 
 System Analysis & Performance Evaluation
-
 1. Semantic Vector Embeddings vs. Keyword Matching
 Contextual Accuracy: By embedding text into 384-dimensional dense vectors using `all-MiniLM-L6-v2`, the system captures underlying semantic context rather than relying on exact string matching. For example, it correctly maps equivalent concepts like *"Flutter Developer"* and *"Mobile Application Engineer"*.
 Similarity Scoring: Cosine similarity generates a continuous score spectrum ($0\% \text{ to } 100\%$), preventing artificial score inflation from keyword-stuffed CVs while penalizing incomplete resumes.
@@ -111,8 +110,5 @@ Execution Speed: Local vector calculations execute within milliseconds, while LL
 PDF Extraction Boundary: Relies on readable text extraction via `pypdf`. Image-based scanned PDFs require an Optical Character Recognition (OCR) pipeline like `pytesseract`.
 Granular Weighting: Currently measures global document similarity. Future iterations can introduce explicit sub-scoring for years of experience, degree level, and specific technical tools.
 
----
-
 Conclusion
-
 The AI-Powered Resume Screener successfully bridges classical NLP embeddings with generative LLMs to automate preliminary candidate vetting. Decoupling local embedding calculations (FastAPI backend) from dynamic UI analytics (Streamlit frontend) provides an efficient, objective, and visual solution that significantly reduces HR screening overhead while delivering context-aware candidate rankings.
