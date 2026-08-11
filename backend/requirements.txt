@@ -1,6 +1,3 @@
---extra-index-url https://download.pytorch.org/whl/cpu
-torch
-sentence-transformers
 fastapi
 uvicorn
 pypdf
@@ -8,3 +5,4 @@ python-dotenv
 google-genai
 scikit-learn
 python-multipart
+requests

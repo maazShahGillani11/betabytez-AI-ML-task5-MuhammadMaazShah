@@ -1,10 +1,10 @@
 import os
 import io
+import requests
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List
 from pypdf import PdfReader
-from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 from google import genai
 from dotenv import load_dotenv
@@ -22,12 +22,34 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Load Sentence Transformer model for Semantic Similarity
-model = SentenceTransformer('all-MiniLM-L6-v2')
-
 # Initialize Gemini Client
 api_key = os.getenv("GOOGLE_API_KEY")
 client = genai.Client(api_key=api_key) if api_key else None
+
+# Hugging Face Free Inference API URL for lightweight vector embeddings (No PyTorch/RAM overhead)
+HF_API_URL = "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2"
+
+
+def get_hf_embeddings(texts: List[str]) -> List[List[float]]:
+    """
+    Hugging Face API se embeddings calculate karta hai.
+    Local memory (RAM) load zero ho jati hai (Render Free Tier 512MB RAM crash fix).
+    """
+    try:
+        response = requests.post(
+            HF_API_URL,
+            json={"inputs": texts, "options": {"wait_for_model": True}},
+            timeout=30
+        )
+        if response.status_code == 200:
+            return response.json()
+        else:
+            raise Exception(f"HF API Error Status: {response.status_code}")
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Failed to generate embeddings via HuggingFace API: {str(e)}"
+        )
 
 
 def extract_text_from_pdf(file_bytes: bytes) -> str:
@@ -73,7 +95,6 @@ def generate_candidate_insights(job_description: str, resume_text: str) -> dict:
         )
         text = response.text
         
-        # Parse basic output
         summary = "Summary generated."
         skills = []
         
@@ -123,16 +144,15 @@ async def screen_resumes(
             resume_texts.append(text)
             file_names.append(file.filename)
         else:
-            # If text extraction fails, still keep track with empty text
             resume_texts.append("")
             file_names.append(file.filename)
 
     if not any(resume_texts):
         raise HTTPException(status_code=400, detail="Could not extract text from any uploaded PDF.")
 
-    # 2. Compute Semantic Embeddings & Cosine Similarity
-    jd_embedding = model.encode([job_description])
-    resume_embeddings = model.encode(resume_texts)
+    # 2. Compute Semantic Embeddings via HF API & Cosine Similarity
+    jd_embedding = get_hf_embeddings([job_description])
+    resume_embeddings = get_hf_embeddings(resume_texts)
 
     similarity_scores = cosine_similarity(jd_embedding, resume_embeddings)[0]
 
