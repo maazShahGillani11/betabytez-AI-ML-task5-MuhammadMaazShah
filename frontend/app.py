@@ -9,7 +9,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
-
 BACKEND_URL = "http://127.0.0.1:8000/api/screen"
 
 # ----------------------------------------------------------------------------
