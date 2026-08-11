@@ -1,9 +1,10 @@
+--find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+torch--cpu
+sentence-transformers
 fastapi
 uvicorn
-python-multipart
 pypdf
-sentence-transformers
-torch
-google-genai
 python-dotenv
+google-genai
 scikit-learn
+python-multipart
