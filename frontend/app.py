@@ -11,7 +11,7 @@ st.set_page_config(
 )
 BACKEND_URL = "https://resumescreener-backend-j872.onrender.com/api/screen"
 
-BACKEND_URL = "http://127.0.0.1:8000/api/screen"
+#BACKEND_URL = "http://127.0.0.1:8000/api/screen"
 # ----------------------------------------------------------------------------
 # Design tokens
 # ----------------------------------------------------------------------------
