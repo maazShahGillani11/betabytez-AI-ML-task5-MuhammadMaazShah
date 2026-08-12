@@ -1,6 +1,11 @@
 Capstone Project: AI-Powered Resume Screener
 An end-to-end AI platform that parses candidate resumes (PDFs), computes semantic match scores against a job description using local embeddings, and generates automated AI summaries and matched skills via Google Gemini.
 
+# Live Application URLs
+
+- **Frontend Application:** https://your-streamlit-app-name.streamlit.app
+- **Backend API Docs:** https://resumescreener-backend-j872.onrender.com/docs
+
 System Architecture
 1. Visual Flow Diagram (Mermaid)
 ```mermaid
