@@ -28,7 +28,7 @@ client = genai.Client(api_key=api_key) if api_key else None
 
 
 def extract_text_from_pdf(file_bytes: bytes) -> str:
-    """PDF file content se text extract karne ke liye helper function."""
+    """function to extract text from PDF bytes using PyPDF2."""
     try:
         pdf_reader = PdfReader(io.BytesIO(file_bytes))
         extracted_text = ""
@@ -43,8 +43,9 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
 
 def calculate_match_scores(job_description: str, resume_texts: List[str]) -> List[float]:
     """
-    TF-IDF Vectorizer & Cosine Similarity use karke match score compute karta hai.
-    Zero local RAM overhead & Zero API 404 errors.
+     Used TF-IDF Vectorizer & Cosine Similarity to match compute score.
+    1. Combine job description and resumes into a single list.
+    2. Use TfidfVectorizer to convert text to TF-IDF features.
     """
     documents = [job_description] + resume_texts
     vectorizer = TfidfVectorizer(stop_words='english')
@@ -56,7 +57,7 @@ def calculate_match_scores(job_description: str, resume_texts: List[str]) -> Lis
 
 
 def generate_candidate_insights(job_description: str, resume_text: str) -> dict:
-    """Gemini API se candidate ki summary aur extracted matched skills generate karta hai."""
+    """gemini-3.6-flash model to generate candidate insights based on JD and resume."""
     if not client:
         return {
             "summary": "Gemini API key not configured.",
@@ -143,7 +144,7 @@ async def screen_resumes(
     # 2. Compute Match Scores via TF-IDF Vectorizer
     similarity_scores = calculate_match_scores(job_description, resume_texts)
 
-    # 3. Process each candidate and generate AI insights via Gemini 2.5 Flash
+    # 3. Process each candidate and generate AI insights via Gemini 3.6 Flash
     for idx, filename in enumerate(file_names):
         score = similarity_scores[idx]
         r_text = resume_texts[idx]
