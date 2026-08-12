@@ -4,6 +4,7 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List
 from pypdf import PdfReader
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from google import genai
 from dotenv import load_dotenv
@@ -26,34 +27,6 @@ api_key = os.getenv("GOOGLE_API_KEY")
 client = genai.Client(api_key=api_key) if api_key else None
 
 
-def get_gemini_embeddings(texts: List[str]) -> List[List[float]]:
-    """
-    Google Gemini 'text-embedding-004' model se vector embeddings generate karta hai.
-    Zero local RAM usage aur high reliability.
-    """
-    if not client:
-        raise HTTPException(
-            status_code=500,
-            detail="GOOGLE_API_KEY is not configured on server."
-        )
-    
-    embeddings = []
-    try:
-        for text in texts:
-            clean_text = text[:2000].strip() if text.strip() else "Empty text"
-            response = client.models.embed_content(
-                model="text-embedding-004",
-                contents=clean_text,
-            )
-            embeddings.append(response.embeddings[0].values)
-        return embeddings
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to generate Gemini embeddings: {str(e)}"
-        )
-
-
 def extract_text_from_pdf(file_bytes: bytes) -> str:
     """PDF file content se text extract karne ke liye helper function."""
     try:
@@ -66,6 +39,20 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
         return extracted_text.strip()
     except Exception as e:
         return ""
+
+
+def calculate_match_scores(job_description: str, resume_texts: List[str]) -> List[float]:
+    """
+    TF-IDF Vectorizer & Cosine Similarity use karke match score compute karta hai.
+    Zero local RAM overhead & Zero API 404 errors.
+    """
+    documents = [job_description] + resume_texts
+    vectorizer = TfidfVectorizer(stop_words='english')
+    tfidf_matrix = vectorizer.fit_transform(documents)
+    
+    # Compare JD (index 0) with all resumes (indices 1 to N)
+    scores = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:])[0]
+    return [round(float(s) * 100, 2) for s in scores]
 
 
 def generate_candidate_insights(job_description: str, resume_text: str) -> dict:
@@ -92,7 +79,7 @@ def generate_candidate_insights(job_description: str, resume_text: str) -> dict:
 
     try:
         response = client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-3.6-flash',
             contents=prompt,
         )
         text = response.text
@@ -149,18 +136,16 @@ async def screen_resumes(
             resume_texts.append("")
             file_names.append(file.filename)
 
-    if not any(resume_texts):
+    valid_resumes = [t for t in resume_texts if t.strip()]
+    if not valid_resumes:
         raise HTTPException(status_code=400, detail="Could not extract text from any uploaded PDF.")
 
-    # 2. Compute Semantic Embeddings via Gemini API & Cosine Similarity
-    jd_embedding = get_gemini_embeddings([job_description])
-    resume_embeddings = get_gemini_embeddings(resume_texts)
+    # 2. Compute Match Scores via TF-IDF Vectorizer
+    similarity_scores = calculate_match_scores(job_description, resume_texts)
 
-    similarity_scores = cosine_similarity(jd_embedding, resume_embeddings)[0]
-
-    # 3. Process each candidate and build response
+    # 3. Process each candidate and generate AI insights via Gemini 2.5 Flash
     for idx, filename in enumerate(file_names):
-        score = round(float(similarity_scores[idx]) * 100, 2)
+        score = similarity_scores[idx]
         r_text = resume_texts[idx]
         
         ai_insights = generate_candidate_insights(job_description, r_text) if r_text else {
