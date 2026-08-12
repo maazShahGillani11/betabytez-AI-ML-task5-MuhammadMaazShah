@@ -1,6 +1,5 @@
 import os
 import io
-import requests
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List
@@ -26,29 +25,32 @@ app.add_middleware(
 api_key = os.getenv("GOOGLE_API_KEY")
 client = genai.Client(api_key=api_key) if api_key else None
 
-# Hugging Face Free Inference API URL for lightweight vector embeddings (No PyTorch/RAM overhead)
-HF_API_URL = "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2"
 
-
-def get_hf_embeddings(texts: List[str]) -> List[List[float]]:
+def get_gemini_embeddings(texts: List[str]) -> List[List[float]]:
     """
-    Hugging Face API se embeddings calculate karta hai.
-    Local memory (RAM) load zero ho jati hai (Render Free Tier 512MB RAM crash fix).
+    Google Gemini 'text-embedding-004' model se vector embeddings generate karta hai.
+    Zero local RAM usage aur high reliability.
     """
-    try:
-        response = requests.post(
-            HF_API_URL,
-            json={"inputs": texts, "options": {"wait_for_model": True}},
-            timeout=30
+    if not client:
+        raise HTTPException(
+            status_code=500,
+            detail="GOOGLE_API_KEY is not configured on server."
         )
-        if response.status_code == 200:
-            return response.json()
-        else:
-            raise Exception(f"HF API Error Status: {response.status_code}")
+    
+    embeddings = []
+    try:
+        for text in texts:
+            clean_text = text[:2000].strip() if text.strip() else "Empty text"
+            response = client.models.embed_content(
+                model="text-embedding-004",
+                contents=clean_text,
+            )
+            embeddings.append(response.embeddings[0].values)
+        return embeddings
     except Exception as e:
         raise HTTPException(
-            status_code=500, 
-            detail=f"Failed to generate embeddings via HuggingFace API: {str(e)}"
+            status_code=500,
+            detail=f"Failed to generate Gemini embeddings: {str(e)}"
         )
 
 
@@ -150,9 +152,9 @@ async def screen_resumes(
     if not any(resume_texts):
         raise HTTPException(status_code=400, detail="Could not extract text from any uploaded PDF.")
 
-    # 2. Compute Semantic Embeddings via HF API & Cosine Similarity
-    jd_embedding = get_hf_embeddings([job_description])
-    resume_embeddings = get_hf_embeddings(resume_texts)
+    # 2. Compute Semantic Embeddings via Gemini API & Cosine Similarity
+    jd_embedding = get_gemini_embeddings([job_description])
+    resume_embeddings = get_gemini_embeddings(resume_texts)
 
     similarity_scores = cosine_similarity(jd_embedding, resume_embeddings)[0]
 
