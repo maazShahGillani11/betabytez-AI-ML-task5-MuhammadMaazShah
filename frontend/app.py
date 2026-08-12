@@ -9,7 +9,7 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
-#BACKEND_URL = "https://resumescreener-backend-j872.onrender.com/api/screen"
+BACKEND_URL = "https://resumescreener-backend-j872.onrender.com/api/screen"
 
 BACKEND_URL = "http://127.0.0.1:8000/api/screen"
 # ----------------------------------------------------------------------------
