@@ -3,7 +3,7 @@ An end-to-end AI platform that parses candidate resumes (PDFs), computes semanti
 
 # Live Application URLs
 
-- **Frontend Application:** https://your-streamlit-app-name.streamlit.app
+- **Frontend Application:** https://betabytez-ai-ml-task5-muhammadmaazshah-njfmjub7oqgbyyjjeuhoxd.streamlit.app
 - **Backend API Docs:** https://resumescreener-backend-j872.onrender.com/docs
 
 System Architecture
